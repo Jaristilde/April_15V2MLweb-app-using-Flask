@@ -1,27 +1,38 @@
 from flask import Flask, request, render_template
-from pickle import load
+import pandas as pd
+import joblib
+from sklearn.ensemble import RandomForestRegressor
 
 app = Flask(__name__)
-model = load(open("/workspaces/flask-render-integration/models/decision_tree_classifier_default_42.sav", "rb"))
-class_dict = {
-    "0": "Iris setosa",
-    "1": "Iris versicolor",
-    "2": "Iris virginica"
-}
 
-@app.route("/", methods = ["GET", "POST"])
+# Load the dataset
+total_data = pd.read_csv("../data/raw/House_Rent_Dataset.csv")
+
+# Extract unique city names from the 'City' column
+unique_cities = total_data['City'].unique()
+
+# Load the preprocessor and model
+preprocessor = joblib.load('preprocessor.pkl')
+model = joblib.load('model.pkl')
+
+@app.route('/', methods=['GET', 'POST'])
 def index():
-    if request.method == "POST":
+    predicted_rent = None
+    user_input = None
+
+    if request.method == 'POST':
+        city = request.form['city']
+        size = float(request.form['size'])
+        bathroom = int(request.form['bathroom'])
         
-        val1 = float(request.form["val1"])
-        val2 = float(request.form["val2"])
-        val3 = float(request.form["val3"])
-        val4 = float(request.form["val4"])
+        # Create DataFrame from user input
+        user_input = pd.DataFrame([[city, size, bathroom]], columns=['City', 'Size', 'Bathroom'])
         
-        data = [[val1, val2, val3, val4]]
-        prediction = str(model.predict(data)[0])
-        pred_class = class_dict[prediction]
-    else:
-        pred_class = None
-    
-    return render_template("index.html", prediction = pred_class)
+        # Preprocess and predict
+        processed_input = preprocessor.transform(user_input)
+        predicted_rent = model.predict(processed_input)[0]
+
+    return render_template('index.html', cities=unique_cities, predicted_rent=predicted_rent, user_input=user_input)
+
+if __name__ == '__main__':
+    app.run(debug=True)
