@@ -3,16 +3,17 @@ import pandas as pd
 import joblib
 from sklearn.ensemble import RandomForestRegressor
 
-app = Flask(__name__)
+app = Flask(__name__, template_folder='../templates')
 
 # Load the dataset
 total_data = pd.read_csv("../data/raw/House_Rent_Dataset.csv")
+
 
 # Extract unique city names from the 'City' column
 unique_cities = total_data['City'].unique()
 
 # Load the preprocessor and model
-preprocessor = joblib.load('preprocessor.pkl')
+
 model = joblib.load('model.pkl')
 
 @app.route('/', methods=['GET', 'POST'])
@@ -29,8 +30,8 @@ def index():
         user_input = pd.DataFrame([[city, size, bathroom]], columns=['City', 'Size', 'Bathroom'])
         
         # Preprocess and predict
-        processed_input = preprocessor.transform(user_input)
-        predicted_rent = model.predict(processed_input)[0]
+    
+        predicted_rent = model.predict(user_input)[0]
 
     return render_template('index.html', cities=unique_cities, predicted_rent=predicted_rent, user_input=user_input)
 
